@@ -114,6 +114,105 @@ ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 \
     Administrator@YOUR_ILO_IP
 ```
 
+---
+
+## Full Manual Configuration Guide
+
+If you want to run commands manually or understand the complete process.
+
+### Pre-Power Up Configuration (Optional)
+
+Check current power settings:
+```
+show /system1/oemhp_power1
+```
+
+Adjust power cap to 950 Watts (if needed):
+```
+set /system1/oemhp_power1 oemhp_pwrcap=950
+```
+
+Set power regulation mode to Dynamic Power Savings:
+```
+set /system1/oemhp_power1 oemhp_powerreg=dynamic
+```
+
+Power on the server:
+```
+power on
+```
+
+### Post-Boot Fan Configuration
+
+**Step 1: Set Fan Minimum Speeds**
+```
+fan p 1 min 12
+fan p 2 min 12
+fan p 3 min 12
+fan p 4 min 12
+fan p 5 min 12
+fan p 6 min 12
+```
+
+**Step 2: Set PID Thresholds**
+```
+fan pid {33,34,35,36,37,38,42,47,52,53,54,55,56,57,58,59,60,61,62,63} lo 3100
+fan pid {53,55,57,61,63} hi 3100
+```
+
+**Step 3: Set OCSD Settings**
+```
+ocsd setts {24,26,27,28,29,30,31,32,44} 2
+```
+
+**Step 4: Disable Temperature Sensors**
+
+These sensors cause unnecessary fan ramp-up. Sensors 34 and 35 have the most impact.
+```
+fan t 32 off
+fan t 45 off
+fan t 31 off
+fan t 41 off
+fan t 37 off
+fan t 38 off
+fan t 29 off
+fan t 34 off
+fan t 35 off
+fan t 30 off
+fan t 40 off
+fan t 36 off
+fan t 28 off
+fan t 33 off
+fan t 27 off
+```
+
+### Verification Commands
+
+Check fan speeds:
+```
+show /system1/fan*
+fan p
+```
+
+Check temperature sensors:
+```
+show /system1/sensor*
+```
+
+Check power consumption:
+```
+show /system1/oemhp_power1
+```
+
+### Expected Outcome
+
+- Fans should settle at around **13-14% speed**
+- System power usage should stay within configured power cap
+- No excessive noise or unnecessary cooling
+- Sensors should show normal operating temperatures
+
+---
+
 ## Troubleshooting
 
 ### Specific fans still running high
@@ -143,6 +242,16 @@ fan pid 35 lo 2500
 - Verify Administrator password is correct
 - Check for account lockout (too many failed attempts)
 - Try connecting manually first to test credentials
+
+### Commands not working / fans not responding
+
+**Important:** You must unplug iLO power for at least 5 minutes to reset its cached memory. This can cause the mod commands to not work properly.
+
+1. Shut down the server gracefully
+2. Unplug the power cables (iLO has capacitor backup)
+3. Wait at least 5 minutes
+4. Reconnect power and boot
+5. Reapply the fan commands
 
 ## Safety Notes
 
