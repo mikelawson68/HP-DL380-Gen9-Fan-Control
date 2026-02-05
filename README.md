@@ -1,22 +1,22 @@
 # HP DL380 Gen9 Fan Control - "Silence of the Fans"
 
-Automated fan control script for HP ProLiant DL380 Gen9 servers. Reduces fan noise significantly by adjusting iLO fan parameters via SSH.
+Automated fan control script for HP ProLiant DL380 Gen9 servers for those who have already sucerssfully installed the mod, but want a way to keep fans quiet if a reboot happens, and it runs every 30 minutes to make sure you're quiet. Reduces fan noise significantly by adjusting iLO fan parameters via SSH. I run this on a VM on a non HP server, and it constantly connecting to all three of my DL380 Gen9 systems, and keeps them between 11-20% fans and low volume. Your mileage may vary. 
 
 ## Tested Configuration
 
 - **Server**: HP ProLiant DL380 Gen9
 - **iLO Version**: iLO 4 (firmware 2.55+)
-- **Mod Version**: Silence of the Fans v1.0 (February 2026)
+- **Mod Version**: The Battle of the Silence of the Fans v1.0 (February 2026)
 
 ## The Problem
 
 DL380 Gen9 servers are notoriously loud in home/office environments. The default fan curves are aggressive, often running fans at 30-50% even at idle temperatures. This is fine in a datacenter but unbearable in a home lab.
 
-## The Solution
+## The Solution - Install Silence of the Fans. Great, works awesome, but everytime you restart you have to run the iLo commands again in CLI while the fans scream. This is my solution.
 
 This script uses undocumented iLO SSH commands to:
 
-1. **Lower fan minimums** - Set minimum fan speed to 12% (default is much higher)
+1. **Lower fan minimums** - Set minimum fan speed to 11% (default is much higher)
 2. **Adjust PID thresholds** - Raise the temperature threshold before fans spin up
 3. **Modify OCSD settings** - Optimize cooling system device behavior
 4. **Disable problematic sensors** - Sensors 34 and 35 are the "magic" ones that cause most unnecessary fan ramp-ups
@@ -25,6 +25,7 @@ This script uses undocumented iLO SSH commands to:
 
 - HP ProLiant DL380 Gen9 (may work on other Gen9 models)
 - iLO 4 with SSH enabled
+- Successful Mod of Silence of the Fans Work
 - `sshpass` utility
 - Network access to iLO from the machine running the script
 
