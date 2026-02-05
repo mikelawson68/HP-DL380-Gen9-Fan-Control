@@ -151,14 +151,18 @@ fan pid 35 lo 2500
 - If you notice thermal throttling, increase minimums or remove some sensor disables
 - Settings reset on iLO reboot, so you can always recover by restarting iLO
 
-## Not Compatible
+## Compatibility
 
-This script is specifically for **HP iLO 4** on **Gen9 servers**. It will NOT work on:
+**Tested on:** HP ProLiant DL380 Gen9 with iLO 4
 
+**May also work on:**
+- HP Gen8 servers - If Silence of the Fans mod works on your Gen8, this script should work too (untested, please report back!)
+- Other Gen9 models (DL360, DL380, ML350, etc.)
+
+**Will NOT work on:**
 - Lenovo servers (use IPMI/XClarity instead)
 - Dell servers (use iDRAC/IPMI)
 - HP Gen10+ (different iLO commands)
-- HP Gen8 and earlier (different command syntax)
 
 ## Credits
 
