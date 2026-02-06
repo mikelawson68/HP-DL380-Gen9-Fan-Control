@@ -39,7 +39,20 @@ log() {
 
 run_ilo_cmd() {
   local ip=$1 port=$2 pw=$3 cmd=$4
-  $SSHPASS -p "$pw" ssh $SSH_OPTS -p "$port" Administrator@"$ip" "$cmd" 2>&1
+  local retries=3
+  for attempt in $(seq 1 $retries); do
+    result=$($SSHPASS -p "$pw" ssh $SSH_OPTS -p "$port" Administrator@"$ip" "$cmd" 2>&1)
+    if [[ $? -eq 0 ]]; then
+      echo "$result"
+      return 0
+    fi
+    if [[ $attempt -lt $retries ]]; then
+      log "  Retry $attempt for: $cmd"
+      sleep 3
+    fi
+  done
+  log "  FAILED after $retries attempts: $cmd"
+  return 1
 }
 
 apply_silence() {
@@ -47,27 +60,33 @@ apply_silence() {
 
   log "=== Applying Silence of the Fans to $name ($ip) ==="
 
-  # Fan minimums (12% is quiet but safe, can go as low as 8 if needed)
+  # Fan minimums — 8% floor
   for i in 1 2 3 4 5 6; do
-    run_ilo_cmd "$ip" "$port" "$pw" "fan p $i min 12"
+    run_ilo_cmd "$ip" "$port" "$pw" "fan p $i min 8"
     sleep 5
   done
 
-  # PID settings - lower thresholds to reduce unnecessary spin-up
-  run_ilo_cmd "$ip" "$port" "$pw" "fan pid {33,34,35,36,37,38,42,47,52,53,54,55,56,57,58,59,60,61,62,63} lo 3100"
-  sleep 5
-  run_ilo_cmd "$ip" "$port" "$pw" "fan pid {53,55,57,61,63} hi 3100"
-  sleep 5
-
-  # OCSD settings
-  run_ilo_cmd "$ip" "$port" "$pw" "ocsd setts {24,26,27,28,29,30,31,32,44} 2"
-  sleep 5
-
-  # Disable temperature sensors that cause unnecessary fan ramp-up
-  # Sensors 34 and 35 are the "magic" ones with the most impact
-  for sensor in 32 45 31 41 37 38 29 34 35 30 40 36 28 33 27; do
-    run_ilo_cmd "$ip" "$port" "$pw" "fan t $sensor off"
+  # Fan max cap — 50% prevents random 100% spikes
+  for i in 1 2 3 4 5 6; do
+    run_ilo_cmd "$ip" "$port" "$pw" "fan p $i max 50"
     sleep 5
+  done
+
+  # PID settings — low thresholds to prevent unnecessary spin-up
+  run_ilo_cmd "$ip" "$port" "$pw" "fan pid {33,34,35,36,37,38,42,47,52,53,54,55,56,57,58,59,60,61,62,63} lo 2500"
+  sleep 5
+  run_ilo_cmd "$ip" "$port" "$pw" "fan pid {53,55,57,61,63} hi 2500"
+  sleep 5
+
+  # OCSD settings — expanded to all indices
+  run_ilo_cmd "$ip" "$port" "$pw" "ocsd setts {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45} 2"
+  sleep 5
+
+  # Disable ALL temperature sensors 0-80
+  # The standard 15 aren't enough — unknown sensors cause ramp-up
+  for sensor in $(seq 0 80); do
+    run_ilo_cmd "$ip" "$port" "$pw" "fan t $sensor off"
+    sleep 3
   done
 
   log "=== Completed $name ==="

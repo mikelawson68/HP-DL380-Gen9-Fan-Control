@@ -1,6 +1,18 @@
 # HP DL380 Gen9 Fan Control - "Silence of the Fans"
 
-Automated fan control script for HP ProLiant DL380 Gen9 servers for those who have already sucerssfully installed the mod, but want a way to keep fans quiet if a reboot happens, and it runs every 30 minutes to make sure you're quiet. Reduces fan noise significantly by adjusting iLO fan parameters via SSH. I run this on a VM on a non HP server, and it constantly connecting to all three of my DL380 Gen9 systems, and keeps them between 11-20% fans and low volume. Your mileage may vary. 
+Automated fan control script for HP ProLiant DL380 Gen9 servers for those who have already successfully installed the mod, but want a way to keep fans quiet if a reboot happens, and it runs every 30 minutes to make sure you're quiet. Reduces fan noise significantly by adjusting iLO fan parameters via SSH. I run this on a VM on a non HP server, and it constantly connecting to all three of my DL380 Gen9 systems, and keeps them between 8-13% fans and very low volume. Your mileage may vary.
+
+## WARNING - READ BEFORE RUNNING
+
+**This script aggressively reduces fan speeds and disables ALL temperature sensors on your server. Before running this you MUST:**
+
+1. **Monitor your server temperatures** — Have iLO web UI open and watch CPU, memory, and ambient temps for at least 24 hours after applying
+2. **Know your room/ambient temperature** — This was developed and tested in a climate-controlled room. If your servers are in a hot closet, garage, or anywhere above ~75F/24C ambient, these settings may not be safe
+3. **Understand what this does** — It sets fan minimums to 8%, caps max at 50%, lowers PID thresholds, and disables ALL temperature sensors (0-80). Your fans will NOT automatically ramp up in response to heat
+4. **Have a recovery plan** — Settings are NOT persistent across iLO/server reboots. If anything goes wrong, restart iLO and fans return to full automatic control. Hardware thermal shutdown still operates at the firmware level as a last resort
+5. **Start conservative if unsure** — Try min 12% with only the standard 15 sensors disabled first (see Manual Configuration below), then go more aggressive once you're comfortable
+
+**This is an experiment. You are responsible for monitoring your hardware. Overheating can damage or destroy components. The author is not responsible for any damage caused by using this script.**
 
 ## Tested Configuration
 
@@ -16,10 +28,11 @@ DL380 Gen9 servers are notoriously loud in home/office environments. The default
 
 This script uses undocumented iLO SSH commands to:
 
-1. **Lower fan minimums** - Set minimum fan speed to 11% (default is much higher)
-2. **Adjust PID thresholds** - Raise the temperature threshold before fans spin up
-3. **Modify OCSD settings** - Optimize cooling system device behavior
-4. **Disable problematic sensors** - Sensors 34 and 35 are the "magic" ones that cause most unnecessary fan ramp-ups
+1. **Lower fan minimums** - Set minimum fan speed to 8% (default is much higher)
+2. **Cap fan maximums** - Set maximum fan speed to 50% (prevents random 100% spikes)
+3. **Adjust PID thresholds** - Lower the PID thresholds to 2500 to reduce unnecessary spin-up
+4. **Modify OCSD settings** - Set all OCSD indices (0-45) to reduce cooling system overreaction
+5. **Disable ALL temperature sensors (0-80)** - The standard 15 sensors aren't enough; unknown sensors outside that range still cause fan ramp-up
 
 ## Requirements
 
@@ -96,6 +109,7 @@ These are the undocumented iLO commands used:
 |---------|-------------|
 | `fan p` | Show current fan percentages |
 | `fan p N min X` | Set fan N minimum to X% |
+| `fan p N max X` | Set fan N maximum to X% |
 | `fan info` | Show fan information |
 | `fan t N off` | Disable temperature sensor N |
 | `fan t N` | Show sensor N status |
@@ -142,9 +156,52 @@ Power on the server:
 power on
 ```
 
-### Post-Boot Fan Configuration
+### Post-Boot Fan Configuration (Aggressive - Script Default)
 
-**Step 1: Set Fan Minimum Speeds**
+**Step 1: Set Fan Minimum Speeds (8% floor)**
+```
+fan p 1 min 8
+fan p 2 min 8
+fan p 3 min 8
+fan p 4 min 8
+fan p 5 min 8
+fan p 6 min 8
+```
+
+**Step 2: Set Fan Maximum Speeds (50% ceiling)**
+```
+fan p 1 max 50
+fan p 2 max 50
+fan p 3 max 50
+fan p 4 max 50
+fan p 5 max 50
+fan p 6 max 50
+```
+
+**Step 3: Set PID Thresholds**
+```
+fan pid {33,34,35,36,37,38,42,47,52,53,54,55,56,57,58,59,60,61,62,63} lo 2500
+fan pid {53,55,57,61,63} hi 2500
+```
+
+**Step 4: Set OCSD Settings (all indices)**
+```
+ocsd setts {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45} 2
+```
+
+**Step 5: Disable ALL Temperature Sensors (0-80)**
+```bash
+# Run each with ~3-5 seconds between commands
+for s in $(seq 0 80); do
+  fan t $s off
+done
+```
+
+### Post-Boot Fan Configuration (Conservative - Start Here If Unsure)
+
+If you want to start safe and work your way down:
+
+**Step 1: Set Fan Minimum Speeds (12% floor)**
 ```
 fan p 1 min 12
 fan p 2 min 12
@@ -165,9 +222,9 @@ fan pid {53,55,57,61,63} hi 3100
 ocsd setts {24,26,27,28,29,30,31,32,44} 2
 ```
 
-**Step 4: Disable Temperature Sensors**
+**Step 4: Disable the 15 Known Problem Sensors**
 
-These sensors cause unnecessary fan ramp-up. Sensors 34 and 35 have the most impact.
+Sensors 34 and 35 have the most impact.
 ```
 fan t 32 off
 fan t 45 off
@@ -206,10 +263,13 @@ show /system1/oemhp_power1
 
 ### Expected Outcome
 
-- Fans should settle at around **13-14% speed**
+**Aggressive (default):** Fans should settle at around **8-13% speed**. Max capped at 50%.
+
+**Conservative:** Fans should settle at around **13-18% speed**.
+
 - System power usage should stay within configured power cap
 - No excessive noise or unnecessary cooling
-- Sensors should show normal operating temperatures
+- Monitor temperatures via iLO web UI — sensors are disabled in CLI but iLO web still shows temps
 
 ---
 
@@ -217,19 +277,7 @@ show /system1/oemhp_power1
 
 ### Specific fans still running high
 
-Some fans (often 3 & 4) may run higher than others. Try lowering their minimum further:
-
-```
-fan p 3 min 8
-fan p 4 min 8
-```
-
-Or lower PID thresholds for the magic sensors:
-
-```
-fan pid 34 lo 2500
-fan pid 35 lo 2500
-```
+If using conservative settings, upgrade to the aggressive defaults (script default). If already on aggressive and some fans are still high, you may have a hardware issue or high ambient temperature.
 
 ### SSH connection fails
 
@@ -255,10 +303,13 @@ fan pid 35 lo 2500
 
 ## Safety Notes
 
-- These settings reduce fan speeds significantly - monitor temperatures initially
-- The script sets minimums to 12%, which is safe for most environments
-- If you notice thermal throttling, increase minimums or remove some sensor disables
+- **These settings aggressively reduce fan speeds and disable all temperature sensors — monitor your temperatures closely, especially for the first 24-48 hours**
+- **Know your ambient/room temperature before running this** — a hot room changes everything
+- The script sets minimums to 8% and caps max at 50% by default
+- Hardware thermal shutdown still operates at the firmware level regardless of these settings — if temps hit critical, the server shuts down to protect itself
+- If you notice thermal throttling or high temps, restart iLO to restore full automatic fan control
 - Settings reset on iLO reboot, so you can always recover by restarting iLO
+- The script includes auto-retry (3 attempts) for intermittent `sshpass` auth failures
 
 ## Compatibility
 
