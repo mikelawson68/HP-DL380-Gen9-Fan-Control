@@ -62,9 +62,9 @@ DL380 Gen9 servers are notoriously loud in home/office environments. The default
 
 ### Install Silence of the Fans First
 
-**Before using this automation script, follow the original Silence of the Fans guide:**
+**Before using this automation script, follow the Silence of the Fans guide:**
 
-- **[HP ILO Fan Control by That-Guy-Jack](https://github.com/That-Guy-Jack/HP-ILO-Fan-Control)** - The original Silence of the Fans guide
+- **[HP ILO Fan Control by That-Guy-Jack](https://github.com/That-Guy-Jack/HP-ILO-Fan-Control)** - The Silence of the Fans guide
 
 Once you've successfully run the manual iLO commands from Jack's guide and verified your fans are quiet, THEN use this script to automate it.
 
