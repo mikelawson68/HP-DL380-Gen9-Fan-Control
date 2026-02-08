@@ -42,6 +42,38 @@ This script uses undocumented iLO SSH commands to:
 - `sshpass` utility
 - Network access to iLO from the machine running the script
 
+## Deployment
+
+### Where to Run This Script
+
+**This script can run from ANY machine on your network** that can reach the iLO interfaces:
+- ✅ Virtual Machine (recommended - easy to keep running 24/7)
+- ✅ Raspberry Pi
+- ✅ Mac Mini / NUC
+- ✅ Docker container
+- ✅ Any Linux/Unix system with network access
+
+**The machine running the script does NOT need to be an HP server.** It just needs:
+1. Network connectivity to iLO IPs
+2. `sshpass` installed
+3. Ability to run cron jobs
+
+### CRITICAL: iLO IPs MUST Be Static
+
+⚠️ **The iLO IP addresses in the script MUST be static (DHCP reservations or static assignments).**
+
+**Why:** The script connects to specific IP addresses hardcoded in the configuration. If an iLO IP changes:
+- ❌ Script will fail to connect
+- ❌ Fans will return to default aggressive curves
+- ❌ Servers will get loud again
+
+**How to ensure static IPs:**
+1. Set DHCP reservations in your router/DHCP server (recommended)
+2. OR assign static IPs directly in iLO network configuration
+3. Document the IPs in this README and your network documentation
+
+**Typical deployment:** Run from a small VM or single-board computer (Raspberry Pi, etc.) that stays powered on 24/7. This ensures the script runs every 30 minutes to maintain fan settings even after server reboots.
+
 ## Installation
 
 ### 1. Install sshpass
