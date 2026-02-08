@@ -1,6 +1,10 @@
-# HP DL380 Gen9 Fan Control - "Silence of the Fans"
+# HP DL380 Gen8/Gen9 Fan Control - Silence of the Fans Automation
 
-Automated fan control script for HP ProLiant DL380 Gen9 servers for those who have already successfully installed the mod, but want a way to keep fans quiet if a reboot happens, and it runs every 30 minutes to make sure you're quiet. Reduces fan noise significantly by adjusting iLO fan parameters via SSH. I run this on a VM on a non HP server, and it constantly connecting to all three of my DL380 Gen9 systems, and keeps them between 8-13% fans and very low volume. Your mileage may vary.
+**Automated script for those who have ALREADY successfully installed the Silence of the Fans mod** on their HP ProLiant servers.
+
+This script automates the manual iLO commands so your fans stay quiet after reboots. Runs every 30 minutes via cron to maintain settings. No more manually re-running commands after every server restart.
+
+**Results:** Fans stay between 8-13% (very quiet) instead of the default 30-50% (jet engine). Run from any machine on your network that can reach the iLO interfaces.
 
 ## WARNING - READ BEFORE RUNNING
 
@@ -16,15 +20,55 @@ Automated fan control script for HP ProLiant DL380 Gen9 servers for those who ha
 
 ## Tested Configuration
 
-- **Server**: HP ProLiant DL380 Gen9
+- **Servers**: HP ProLiant DL380 Gen8 & Gen9 (should work on other DL-series)
 - **iLO Version**: iLO 4 (firmware 2.55+)
-- **Mod Version**: The Battle of the Silence of the Fans v1.0 (February 2026)
+- **Prerequisite**: Silence of the Fans mod successfully installed and tested
+
+### Compatibility
+
+**This script should work on:**
+- ✅ HP Gen8 servers (DL380, DL360, etc.) **IF** Silence of the Fans works on your model
+- ✅ HP Gen9 servers (DL380, DL360, DL180, ML350, etc.) **IF** Silence of the Fans works on your model
+- ✅ Any HP server where you've successfully run the manual Silence of the Fans commands
+
+**This script will NOT work on:**
+- ❌ Servers where Silence of the Fans mod doesn't work
+- ❌ HP Gen10+ (different iLO commands required)
+- ❌ Lenovo servers (use IPMI/XClarity)
+- ❌ Dell servers (use iDRAC/IPMI)
 
 ## The Problem
 
 DL380 Gen9 servers are notoriously loud in home/office environments. The default fan curves are aggressive, often running fans at 30-50% even at idle temperatures. This is fine in a datacenter but unbearable in a home lab.
 
-## The Solution - Install Silence of the Fans. Great, works awesome, but everytime you restart you have to run the iLo commands again in CLI while the fans scream. This is my solution.
+## IMPORTANT: This is NOT the Silence of the Fans Mod
+
+⚠️ **This script automates an EXISTING Silence of the Fans installation. It does NOT install the mod for you.**
+
+### Prerequisites
+
+**You MUST have ALREADY successfully installed "Silence of the Fans" on your HP server** before using this script.
+
+**What this script does:**
+- ✅ Automates the iLO commands from the Silence of the Fans mod
+- ✅ Runs every 30 minutes to maintain settings
+- ✅ Applies settings on boot so fans quiet down quickly after restarts
+- ✅ Eliminates the need to manually re-run commands after every reboot
+
+**What this script does NOT do:**
+- ❌ Install the Silence of the Fans mod for the first time
+- ❌ Explain how the mod works
+- ❌ Provide troubleshooting for the original mod
+
+### Install Silence of the Fans First
+
+**Before using this automation script, follow the original Silence of the Fans guide:**
+
+- **[HP ILO Fan Control by That-Guy-Jack](https://github.com/That-Guy-Jack/HP-ILO-Fan-Control)** - The original Silence of the Fans guide
+
+Once you've successfully run the manual iLO commands from Jack's guide and verified your fans are quiet, THEN use this script to automate it.
+
+## The Solution - Automated Silence
 
 This script uses undocumented iLO SSH commands to:
 
@@ -47,9 +91,9 @@ This script uses undocumented iLO SSH commands to:
 ### Where to Run This Script
 
 **This script can run from ANY machine on your network** that can reach the iLO interfaces:
-- ✅ Virtual Machine (recommended - easy to keep running 24/7)
-- ✅ Raspberry Pi
+- ✅ Raspberry Pi (recommended)
 - ✅ Mac Mini / NUC
+- ✅ Dedicated VM on a non-HP server
 - ✅ Docker container
 - ✅ Any Linux/Unix system with network access
 
@@ -57,6 +101,26 @@ This script uses undocumented iLO SSH commands to:
 1. Network connectivity to iLO IPs
 2. `sshpass` installed
 3. Ability to run cron jobs
+
+### Boot Time Considerations
+
+⚠️ **Best practice: Run from a machine that is NOT one of the HP servers you're controlling.**
+
+**Why:**
+- If you run this from a VM **on** an HP DL380, the boot sequence is:
+  1. Server powers on → **Fans at 100% (jet engine sound)** 🔊
+  2. Host OS boots → Still loud
+  3. VM starts → Still loud
+  4. Script finally runs → Fans quiet down
+  5. **Total loud time: 2-5 minutes**
+
+- If you run from an **external machine** (Raspberry Pi, separate server, etc.):
+  1. Server powers on → **Fans at 100%** 🔊
+  2. iLO becomes available (~30 seconds)
+  3. Script connects and runs immediately → **Fans quiet down**
+  4. **Total loud time: 30-60 seconds**
+
+**The external machine approach quiets the fans 4-5x faster** because the script can connect as soon as iLO is available, not after the entire host+VM boot sequence.
 
 ### CRITICAL: iLO IPs MUST Be Static
 
@@ -358,8 +422,9 @@ If using conservative settings, upgrade to the aggressive defaults (script defau
 
 ## Credits
 
-- Original "Silence of the Fans" research by the HomeLabbers community
-- Script automation by Mike Lawson, 2026
+- **Original Silence of the Fans mod:** [That-Guy-Jack's HP ILO Fan Control](https://github.com/That-Guy-Jack/HP-ILO-Fan-Control)
+- **Script automation:** Mike Lawson, 2026
+- **Community contributions:** ServTheHome forums, r/homelab
 
 ## License
 
