@@ -1,0 +1,6 @@
+*.log
+*.state
+*report*.json
+*.conf
+*.local
+.env
